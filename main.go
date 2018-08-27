@@ -1,42 +1,64 @@
 package main
 
 import (
+	"fmt"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"io"
 	"log"
 	"net/http"
 )
 
-const port = ":19933"
-
-func checkOriginFunc(r *http.Request) bool {
-	// ignore all origin check
-	return true
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-var upgrader = websocket.Upgrader{CheckOrigin: checkOriginFunc}
-
-func echo(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
+func wsHandler(c *gin.Context) {
+	cc, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return
 	}
-	defer c.Close()
+	defer cc.Close()
 	for {
-		mt, message, err := c.ReadMessage()
+		mt, message, err := cc.ReadMessage()
 		if err != nil {
-			log.Printf("read err : %s\n", err.Error())
-			return
+			log.Println("read:", err)
+			break
 		}
-		err = c.WriteMessage(mt, message)
+		log.Printf("recv: %s", message)
+		err = cc.WriteMessage(mt, message)
 		if err != nil {
-			log.Printf("write err : %s\n", err.Error())
-			return
+			log.Println("write:", err)
+			break
 		}
 	}
 }
 
+func helloHandler(c *gin.Context) {
+	fmt.Printf("%+v\n", c.Request)
+	res := ""
+	for k, v := range c.Request.Header {
+		res += fmt.Sprintf("%s:%s\n", k, v)
+	}
+	c.String(http.StatusOK, res)
+}
+
+func echoHandler(c *gin.Context) {
+	io.Copy(c.Writer, c.Request.Body)
+}
+
 func main() {
-	http.HandleFunc("/", echo)
-	log.Fatal(http.ListenAndServe(port, nil))
+	r := gin.Default()
+	r.Use(cors.Default())
+
+	r.GET("/", helloHandler)
+	r.GET("/hello", helloHandler)
+	r.GET("/ws", wsHandler)
+	r.POST("/echo", echoHandler)
+
+	r.Run()
 }

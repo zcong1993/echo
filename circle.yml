@@ -3,7 +3,7 @@ jobs:
   build:
     docker:
       # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
-      - image: circleci/golang:1.9
+      - image: circleci/golang:1.10
 
     working_directory: /go/src/github.com/zcong1993/echo
 
@@ -12,11 +12,7 @@ jobs:
       - run:
           name: get deps
           command: |
-            go get -u -v github.com/golang/dep/cmd/dep
-            dep ensure
-            go get -u -v github.com/mitchellh/gox
+            make install
       - run:
           name: build
-          command: |
-            chmod +x ./build.sh
-            make build
+          command: make build
