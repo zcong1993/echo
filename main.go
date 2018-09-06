@@ -39,7 +39,6 @@ func wsHandler(c *gin.Context) {
 }
 
 func helloHandler(c *gin.Context) {
-	fmt.Printf("%+v\n", c.Request)
 	res := ""
 	for k, v := range c.Request.Header {
 		res += fmt.Sprintf("%s:%s\n", k, v)
